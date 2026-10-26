@@ -78,7 +78,7 @@ h2{margin:0 0 10px;font-size:15px;font-weight:600;color:var(--mut)}
 <footer class="cred">سازنده : <a href="https://t.me/sahandsoft" target="_blank" rel="noopener">دانیال افشاری</a> | تلگرام : <a href="https://t.me/sahandsoft" target="_blank" rel="noopener">سهند سافت</a></footer>
 </div>
 
-<div class="ov" id="start"><div class="box"><h2>شروع بازی</h2><p>تعداد بازیکنان را انتخاب کنید. اگر یک‌نفره بازی می‌کنید، رایانه هم وارد رقابت می‌شود. تاس کاملاً تصادفی است و نوبت اول با قرعه مشخص می‌شود. <span style="opacity:.55">(نسخهٔ ۱.۴)</span></p>
+<div class="ov" id="start"><div class="box"><h2>شروع بازی</h2><p>تعداد بازیکنان را انتخاب کنید. اگر یک‌نفره بازی می‌کنید، رایانه هم وارد رقابت می‌شود. تاس کاملاً تصادفی است و نوبت اول با قرعه مشخص می‌شود. <span style="opacity:.55">(نسخهٔ ۱.۵)</span></p>
 <div class="cnt" id="cnt"></div><button id="begin" class="ghost" style="width:100%;padding:14px;font-weight:800;background:linear-gradient(180deg,#ffe08a,#f2b434);color:#2a1b02">شروع بازی</button></div></div>
 <div class="ov" id="end" hidden><div class="box"><h2>🏆 برنده!</h2><p id="wn"></p><button id="re" class="ghost" style="width:100%;padding:14px;font-weight:800">بازی دوباره</button></div></div>
 
@@ -179,9 +179,11 @@ const face=v=>[...dice.children].forEach((e,i)=>e.classList.toggle('on',PIPS[v].
 /* چشمک‌های تاس به‌تدریج کند می‌شوند و دقیقاً با پایان چرخش، عدد واقعی v می‌نشیند؛
    چیزی که دیده می‌شود دقیقاً همان چیزی است که در منطق بازی شمرده می‌شود */
 const STEPS=[60,60,65,70,80,95,115,140];
-async function spin(v){dice.classList.remove('roll','settle');void dice.offsetWidth;dice.classList.add('roll');
-  for(const t of STEPS){face(1+Math.random()*6|0);beep(200+Math.random()*200,.04,'square',.03);await wait(t)}
-  face(v);dice.classList.add('settle')}
+/* صدای تاس متمایز است: انسان = تیک‌های زیر و روشن + جینگل خوش‌آهنگ نشستن، رایانه = تیک‌های بم و خشن + صداِ سنگین نشستن */
+async function spin(v,ai){dice.classList.remove('roll','settle');void dice.offsetWidth;dice.classList.add('roll');
+  for(const t of STEPS){face(1+Math.random()*6|0);beep((ai?170:460)+Math.random()*(ai?140:230),.05,ai?'square':'triangle',.035);await wait(t)}
+  face(v);dice.classList.add('settle');
+  if(ai)beep(220,.16,'sawtooth',.05);else{beep(720,.1,'triangle',.05);beep(960,.14,'triangle',.05,.09)}}
 
 /* ---------- تاس ---------- */
 // تاس ۱۰۰٪ تصادفی و یکسان برای همهٔ بازیکن‌ها؛ شروع‌کننده با قرعه انتخاب می‌شود تا بازی کاملاً متقارن و منصفانه باشد.
@@ -213,7 +215,9 @@ function init(){
 async function roll(){
   const g=G;
   if(busy||over)return;busy=true;ui();const p=P[turn],v=1+Math.random()*6|0;
-  await spin(v);if(g!==G)return;log(`${p.name} عدد ${fa(v)} آورد`);
+  await wait(500);if(g!==G)return; /* مکث نیم‌ثانیه‌ای پیش از زدن تاس */
+  await spin(v,p.ai);if(g!==G)return;log(`${p.name} عدد ${fa(v)} آورد`);
+  await wait(1000);if(g!==G)return; /* مکث یک‌ثانیه‌ای بعد از مشخص شدن عدد تاس */
   if(p.pos+v>100)log('باید دقیقاً به ۱۰۰ برسد؛ این بار حرکتی نیست.');
   else{
     for(let i=0;i<v;i++){p.pos++;await move(p,p.pos,170,true);if(g!==G)return;beep(380+p.pos*4,.06);ui()}
