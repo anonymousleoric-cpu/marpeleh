@@ -77,7 +77,7 @@ h2{margin:0 0 10px;font-size:15px;font-weight:600;color:var(--mut)}
 <footer class="cred">سازنده : <a href="https://t.me/sahandsoft" target="_blank" rel="noopener">دانیال افشاری</a> | تلگرام : <a href="https://t.me/sahandsoft" target="_blank" rel="noopener">سهند سافت</a></footer>
 </div>
 
-<div class="ov" id="start"><div class="box"><h2>شروع بازی</h2><p>تعداد بازیکنان را انتخاب کنید. اگر یک‌نفره بازی می‌کنید، رایانه هم وارد رقابت می‌شود. تاس کاملاً تصادفی است و نوبت اول با قرعه مشخص می‌شود.</p>
+<div class="ov" id="start"><div class="box"><h2>شروع بازی</h2><p>تعداد بازیکنان را انتخاب کنید. اگر یک‌نفره بازی می‌کنید، رایانه هم وارد رقابت می‌شود. تاس کاملاً تصادفی است و نوبت اول با قرعه مشخص می‌شود. <span style="opacity:.55">(نسخهٔ ۱.۳)</span></p>
 <div class="cnt" id="cnt"></div><button id="begin" class="ghost" style="width:100%;padding:14px;font-weight:800;background:linear-gradient(180deg,#ffe08a,#f2b434);color:#2a1b02">شروع بازی</button></div></div>
 <div class="ov" id="end" hidden><div class="box"><h2>🏆 برنده!</h2><p id="wn"></p><button id="re" class="ghost" style="width:100%;padding:14px;font-weight:800">بازی دوباره</button></div></div>
 
@@ -180,7 +180,13 @@ async function spin(v){dice.classList.remove('roll');void dice.offsetWidth;dice.
 
 /* ---------- تاس ---------- */
 // تاس ۱۰۰٪ تصادفی و یکسان برای همهٔ بازیکن‌ها؛ شروع‌کننده با قرعه انتخاب می‌شود تا بازی کاملاً متقارن و منصفانه باشد.
-let G=0; // نسل بازی — با هر «بازی تازه» افزایش می‌یابد تا نوبت‌های معلق بازی قبلی در بازی جدید اثر نگذارند
+let G=0,aiTimer=null; // نسل بازی + هندل تایمر نوبت رایانه
+// هرگز بیش از یک نوبت معلق رایانه وجود ندارد و با شروع بازی تازه قطعاً لغو می‌شود
+function scheduleAI(ms){
+  clearTimeout(aiTimer);
+  const g=G;
+  aiTimer=setTimeout(()=>{aiTimer=null;if(g===G&&!over&&!busy&&P[turn]&&P[turn].ai)roll()},ms);
+}
 
 /* ---------- game ---------- */
 function log(t){const li=document.createElement('li');li.textContent=t;$('#log').prepend(li);while($('#log').children.length>40)$('#log').lastChild.remove()}
@@ -190,14 +196,14 @@ function ui(){
   $('#pl').innerHTML=P.map((q,i)=>`<div class="p ${i==turn&&!over?'act':''}" style="--c:${q.c}"><span class="dot"></span><b>${q.name}</b><span>خانهٔ ${fa(q.pos)}</span><div class="bar"><i style="width:${q.pos}%"></i></div></div>`).join('');
 }
 function init(){
-  const g=++G; /* نسل جدید */
+  ++G;clearTimeout(aiTimer);aiTimer=null; /* نسل جدید + لغو هر نوبت معلق بازی قبلی */
   over=false;conf=[];
   const n=count==1?2:count;P=[];
   for(let i=0;i<n;i++){const[x,y]=cc(1);P.push({name:count==1?(i?'رایانه':'شما'):'بازیکن '+fa(i+1),c:COL[i],pos:1,fx:x,fy:y,h:0,mv:false,ai:count==1&&i==1})}
   turn=Math.random()*P.length|0; /* قرعهٔ شروع — شانس برابر برای همه */
   $('#log').innerHTML=`<li>بازی شروع شد! نوبت اول با ${P[turn].name} است. موفق باشید!</li>`;
   busy=false;ui();$('#start').hidden=true;$('#end').hidden=true;face(1);
-  if(P[turn].ai)setTimeout(()=>{if(g===G)roll()},900);
+  if(P[turn].ai)scheduleAI(900);
 }
 async function roll(){
   const g=G;
@@ -216,7 +222,7 @@ async function roll(){
   }
   if(v==6){log(`${p.name} یک نوبت اضافه گرفت ✨`)}else turn=(turn+1)%P.length;
   if(g!==G)return;
-  busy=false;ui();if(P[turn].ai)setTimeout(()=>{if(g===G)roll()},900);
+  busy=false;ui();if(P[turn].ai)scheduleAI(900);
 }
 $('#cnt').innerHTML=[1,2,3,4].map(n=>`<button aria-pressed="${n==1}" data-n="${n}">${fa(n)}<small>${n==1?'نفره':'نفر'}</small></button>`).join('');
 $('#cnt').onclick=e=>{const b=e.target.closest('button');if(!b)return;count=+b.dataset.n;[...$('#cnt').children].forEach(x=>x.setAttribute('aria-pressed',x==b))};
