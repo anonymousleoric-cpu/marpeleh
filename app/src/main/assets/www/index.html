@@ -26,10 +26,11 @@ aside{display:grid;gap:14px}
 .turn{display:flex;align-items:center;gap:14px}
 .turn small{color:var(--mut);display:block}
 .turn b{font-size:20px}
-#dice{width:76px;height:76px;flex:none;border-radius:18px;padding:9px;display:grid;grid-template:repeat(3,1fr)/repeat(3,1fr);background:linear-gradient(145deg,#fff,#cfd6ea);box-shadow:0 10px 22px #0008,inset 0 -5px 8px #0003,inset 0 3px 4px #fff}
+#dice{width:76px;height:76px;flex:none;border-radius:18px;padding:9px;display:grid;grid-template:repeat(3,1fr)/repeat(3,1fr);background:linear-gradient(145deg,#fff,#cfd6ea);box-shadow:0 10px 22px #0008,inset 0 -5px 8px #0003,inset 0 3px 4px #fff;transition:box-shadow .25s}
 #dice i{border-radius:50%;margin:15%}
 #dice i.on{background:radial-gradient(circle at 35% 30%,#555,#0b1020 70%)}
-#dice.roll{animation:tumble .75s ease-in-out}
+#dice.roll{animation:tumble .69s ease-in-out}
+#dice.settle{box-shadow:0 0 0 3px #f2c14e,0 10px 22px #0008,inset 0 -5px 8px #0003,inset 0 3px 4px #fff}
 @keyframes tumble{0%{transform:translateY(0) rotate(0)}25%{transform:translateY(-26px) rotate(160deg) scale(1.1)}55%{transform:translateY(0) rotate(360deg)}75%{transform:translateY(-10px) rotate(500deg)}100%{transform:translateY(0) rotate(720deg)}}
 #go{width:100%;margin-top:14px;padding:14px;border-radius:14px;font-weight:800;font-size:17px;color:#2a1b02;background:linear-gradient(180deg,#ffe08a,#f2b434);box-shadow:0 8px 0 #9a6a10,0 14px 24px #0007;transition:transform .1s,box-shadow .1s}
 #go:active:not(:disabled){transform:translateY(5px);box-shadow:0 3px 0 #9a6a10}
@@ -77,7 +78,7 @@ h2{margin:0 0 10px;font-size:15px;font-weight:600;color:var(--mut)}
 <footer class="cred">سازنده : <a href="https://t.me/sahandsoft" target="_blank" rel="noopener">دانیال افشاری</a> | تلگرام : <a href="https://t.me/sahandsoft" target="_blank" rel="noopener">سهند سافت</a></footer>
 </div>
 
-<div class="ov" id="start"><div class="box"><h2>شروع بازی</h2><p>تعداد بازیکنان را انتخاب کنید. اگر یک‌نفره بازی می‌کنید، رایانه هم وارد رقابت می‌شود. تاس کاملاً تصادفی است و نوبت اول با قرعه مشخص می‌شود. <span style="opacity:.55">(نسخهٔ ۱.۳)</span></p>
+<div class="ov" id="start"><div class="box"><h2>شروع بازی</h2><p>تعداد بازیکنان را انتخاب کنید. اگر یک‌نفره بازی می‌کنید، رایانه هم وارد رقابت می‌شود. تاس کاملاً تصادفی است و نوبت اول با قرعه مشخص می‌شود. <span style="opacity:.55">(نسخهٔ ۱.۴)</span></p>
 <div class="cnt" id="cnt"></div><button id="begin" class="ghost" style="width:100%;padding:14px;font-weight:800;background:linear-gradient(180deg,#ffe08a,#f2b434);color:#2a1b02">شروع بازی</button></div></div>
 <div class="ov" id="end" hidden><div class="box"><h2>🏆 برنده!</h2><p id="wn"></p><button id="re" class="ghost" style="width:100%;padding:14px;font-weight:800">بازی دوباره</button></div></div>
 
@@ -175,8 +176,12 @@ const wait=ms=>new Promise(r=>setTimeout(r,ms));
 const PIPS={1:[4],2:[0,8],3:[0,4,8],4:[0,2,6,8],5:[0,2,4,6,8],6:[0,2,3,5,6,8]},dice=$('#dice');
 dice.innerHTML='<i></i>'.repeat(9);
 const face=v=>[...dice.children].forEach((e,i)=>e.classList.toggle('on',PIPS[v].includes(i)));face(1);
-async function spin(v){dice.classList.remove('roll');void dice.offsetWidth;dice.classList.add('roll');
-  for(let i=0;i<9;i++){face(1+Math.random()*6|0);beep(200+Math.random()*200,.04,'square',.03);await wait(75)}face(v)}
+/* چشمک‌های تاس به‌تدریج کند می‌شوند و دقیقاً با پایان چرخش، عدد واقعی v می‌نشیند؛
+   چیزی که دیده می‌شود دقیقاً همان چیزی است که در منطق بازی شمرده می‌شود */
+const STEPS=[60,60,65,70,80,95,115,140];
+async function spin(v){dice.classList.remove('roll','settle');void dice.offsetWidth;dice.classList.add('roll');
+  for(const t of STEPS){face(1+Math.random()*6|0);beep(200+Math.random()*200,.04,'square',.03);await wait(t)}
+  face(v);dice.classList.add('settle')}
 
 /* ---------- تاس ---------- */
 // تاس ۱۰۰٪ تصادفی و یکسان برای همهٔ بازیکن‌ها؛ شروع‌کننده با قرعه انتخاب می‌شود تا بازی کاملاً متقارن و منصفانه باشد.
