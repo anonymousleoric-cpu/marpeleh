@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>مار و پله</title>
+<title>مار و پله (دانیال افشاری)</title>
 <link rel="stylesheet" href="fonts.css">
 <style>
 :root{--bg:#070d1c;--bg2:#12213f;--ink:#eef2ff;--mut:#9fb0d6;--gold:#f2c14e;--card:rgba(255,255,255,.06);--line:rgba(255,255,255,.12);color-scheme:dark;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
@@ -12,7 +12,8 @@ html{scroll-padding-top:env(safe-area-inset-top,0px)}
 body{margin:0;min-height:100vh;font-family:Vazirmatn,Tahoma,"Segoe UI",sans-serif;color:var(--ink);background:radial-gradient(1200px 700px at 80% -10%,#21407a55,transparent 60%),radial-gradient(900px 600px at 0% 110%,#0f766e44,transparent 60%),var(--bg)}
 .app{max-width:1100px;margin:0 auto;min-height:100vh;min-height:100dvh;padding:18px;display:grid;gap:18px;grid-template-columns:minmax(0,1fr) 340px;align-items:start}
 header{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;gap:12px}
-h1{margin:0;font-size:clamp(26px,4vw,38px);font-weight:800;background:linear-gradient(180deg,#fff,#f2c14e);-webkit-background-clip:text;background-clip:text;color:transparent}
+h1{margin:0;font-size:clamp(24px,3.6vw,34px);font-weight:800;background:linear-gradient(180deg,#fff,#f2c14e);-webkit-background-clip:text;background-clip:text;color:transparent}
+h1 .maker{font-size:.62em;font-weight:600}
 button{font:inherit;cursor:pointer;border:0;color:inherit}
 button:focus-visible{outline:2px solid var(--gold);outline-offset:3px}
 .ghost{padding:9px 16px;border-radius:12px;background:var(--card);border:1px solid var(--line)}
@@ -62,7 +63,7 @@ h2{margin:0 0 10px;font-size:15px;font-weight:600;color:var(--mut)}
 </head>
 <body>
 <div class="app">
-<header><h1>🐍 مار و پله</h1><button class="ghost" id="again">بازی تازه</button></header>
+<header><h1>🐍 مار و پله <span class="maker">(دانیال افشاری)</span></h1><button class="ghost" id="again">بازی تازه</button></header>
 <main class="bw"><div><canvas id="cv" aria-label="صفحهٔ بازی مار و پله"></canvas></div></main>
 <aside>
 <section class="card">
@@ -177,6 +178,29 @@ const face=v=>[...dice.children].forEach((e,i)=>e.classList.toggle('on',PIPS[v].
 async function spin(v){dice.classList.remove('roll');void dice.offsetWidth;dice.classList.add('roll');
   for(let i=0;i<9;i++){face(1+Math.random()*6|0);beep(200+Math.random()*200,.04,'square',.03);await wait(75)}face(v)}
 
+/* ---------- تاس منصفانه ---------- */
+// تاس پایه کاملاً تصادفی است؛ فقط وقتی رایانه در بازی باشد برای حس بهتر:
+// ۱) وقتی رایانه جلوتر است کمی شانسش کم می‌شود
+// ۲) زنجیرهٔ ۶های پشت‌سرهم رایانه حداکثر ۲ بار
+// ۳) وقتی شما عقب هستید کمی شانس بیشتری می‌گیرید
+// در بازی‌های دو تا چهار نفرهٔ بدون رایانه، تاس ۱۰۰٪ تصادفی می‌ماند.
+let aiChain=0;
+function rollDice(p){
+  const w=[1,1,1,1,1,1],opp=P.find(q=>q!==p);
+  if(opp&&P.some(q=>q.ai)){
+    const diff=p.pos-opp.pos;
+    if(p.ai){
+      if(diff>15){w[3]=.85;w[4]=.7;w[5]=.45}else if(diff>7){w[4]=.85;w[5]=.65}
+      if(aiChain>=2)w[5]=Math.min(w[5],.15);
+    }else if(opp.ai){
+      if(diff<-15){w[3]=1.2;w[4]=1.35;w[5]=1.5}else if(diff<-7){w[4]=1.15;w[5]=1.3}
+    }
+  }
+  const tot=w.reduce((a,b)=>a+b,0);let r=Math.random()*tot;
+  for(let i=0;i<6;i++){if((r-=w[i])<0)return i+1}
+  return 6;
+}
+
 /* ---------- game ---------- */
 function log(t){const li=document.createElement('li');li.textContent=t;$('#log').prepend(li);while($('#log').children.length>40)$('#log').lastChild.remove()}
 function ui(){
@@ -185,13 +209,13 @@ function ui(){
   $('#pl').innerHTML=P.map((q,i)=>`<div class="p ${i==turn&&!over?'act':''}" style="--c:${q.c}"><span class="dot"></span><b>${q.name}</b><span>خانهٔ ${fa(q.pos)}</span><div class="bar"><i style="width:${q.pos}%"></i></div></div>`).join('');
 }
 function init(){
-  over=false;turn=0;conf=[];$('#log').innerHTML='<li>بازی شروع شد. موفق باشید!</li>';
+  over=false;turn=0;aiChain=0;conf=[];$('#log').innerHTML='<li>بازی شروع شد. موفق باشید!</li>';
   const n=count==1?2:count;P=[];
   for(let i=0;i<n;i++){const[x,y]=cc(1);P.push({name:count==1?(i?'رایانه':'شما'):'بازیکن '+fa(i+1),c:COL[i],pos:1,fx:x,fy:y,h:0,mv:false,ai:count==1&&i==1})}
   busy=false;ui();$('#start').hidden=true;$('#end').hidden=true;face(1);
 }
 async function roll(){
-  if(busy||over)return;busy=true;ui();const p=P[turn],v=1+Math.random()*6|0;
+  if(busy||over)return;busy=true;ui();const p=P[turn],v=rollDice(p);if(p.ai)aiChain=v==6?aiChain+1:0;
   await spin(v);log(`${p.name} عدد ${fa(v)} آورد`);
   if(p.pos+v>100)log('باید دقیقاً به ۱۰۰ برسد؛ این بار حرکتی نیست.');
   else{
