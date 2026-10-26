@@ -180,6 +180,7 @@ async function spin(v){dice.classList.remove('roll');void dice.offsetWidth;dice.
 
 /* ---------- تاس ---------- */
 // تاس ۱۰۰٪ تصادفی و یکسان برای همهٔ بازیکن‌ها؛ شروع‌کننده با قرعه انتخاب می‌شود تا بازی کاملاً متقارن و منصفانه باشد.
+let G=0; // نسل بازی — با هر «بازی تازه» افزایش می‌یابد تا نوبت‌های معلق بازی قبلی در بازی جدید اثر نگذارند
 
 /* ---------- game ---------- */
 function log(t){const li=document.createElement('li');li.textContent=t;$('#log').prepend(li);while($('#log').children.length>40)$('#log').lastChild.remove()}
@@ -189,30 +190,33 @@ function ui(){
   $('#pl').innerHTML=P.map((q,i)=>`<div class="p ${i==turn&&!over?'act':''}" style="--c:${q.c}"><span class="dot"></span><b>${q.name}</b><span>خانهٔ ${fa(q.pos)}</span><div class="bar"><i style="width:${q.pos}%"></i></div></div>`).join('');
 }
 function init(){
+  const g=++G; /* نسل جدید */
   over=false;conf=[];
   const n=count==1?2:count;P=[];
   for(let i=0;i<n;i++){const[x,y]=cc(1);P.push({name:count==1?(i?'رایانه':'شما'):'بازیکن '+fa(i+1),c:COL[i],pos:1,fx:x,fy:y,h:0,mv:false,ai:count==1&&i==1})}
   turn=Math.random()*P.length|0; /* قرعهٔ شروع — شانس برابر برای همه */
   $('#log').innerHTML=`<li>بازی شروع شد! نوبت اول با ${P[turn].name} است. موفق باشید!</li>`;
   busy=false;ui();$('#start').hidden=true;$('#end').hidden=true;face(1);
-  if(P[turn].ai)setTimeout(roll,900);
+  if(P[turn].ai)setTimeout(()=>{if(g===G)roll()},900);
 }
 async function roll(){
+  const g=G;
   if(busy||over)return;busy=true;ui();const p=P[turn],v=1+Math.random()*6|0;
-  await spin(v);log(`${p.name} عدد ${fa(v)} آورد`);
+  await spin(v);if(g!==G)return;log(`${p.name} عدد ${fa(v)} آورد`);
   if(p.pos+v>100)log('باید دقیقاً به ۱۰۰ برسد؛ این بار حرکتی نیست.');
   else{
-    for(let i=0;i<v;i++){p.pos++;await move(p,p.pos,170,true);beep(380+p.pos*4,.06);ui()}
+    for(let i=0;i<v;i++){p.pos++;await move(p,p.pos,170,true);if(g!==G)return;beep(380+p.pos*4,.06);ui()}
     const to=SN[p.pos]||LD[p.pos];
     if(to){const up=!!LD[p.pos];log(up?`${p.name} از نردبان بالا رفت و به خانهٔ ${fa(to)} رسید 🪜`:`${p.name} را مار گزید و به خانهٔ ${fa(to)} افتاد 🐍`);
-      await wait(250);slideSnd(up);p.pos=to;await move(p,to,900,false);ui()}
+      await wait(250);if(g!==G)return;slideSnd(up);p.pos=to;await move(p,to,900,false);if(g!==G)return;ui()}
     if(p.pos==100){over=true;ui();$('#wn').textContent=`${p.name} به خانهٔ ۱۰۰ رسید و برنده شد!`;
       for(let i=0;i<160;i++)conf.push({x:S/2,y:S/2,vx:(Math.random()-.5)*12,vy:-Math.random()*11-2,r:0,vr:Math.random()*.4,c:COL[i%4]});
       [523,659,784,1047].forEach((f,i)=>beep(f,.25,'triangle',.08,i*.15));
-      await wait(1600);$('#end').hidden=false;return}
+      await wait(1600);if(g!==G)return;$('#end').hidden=false;return}
   }
   if(v==6){log(`${p.name} یک نوبت اضافه گرفت ✨`)}else turn=(turn+1)%P.length;
-  busy=false;ui();if(P[turn].ai)setTimeout(roll,900);
+  if(g!==G)return;
+  busy=false;ui();if(P[turn].ai)setTimeout(()=>{if(g===G)roll()},900);
 }
 $('#cnt').innerHTML=[1,2,3,4].map(n=>`<button aria-pressed="${n==1}" data-n="${n}">${fa(n)}<small>${n==1?'نفره':'نفر'}</small></button>`).join('');
 $('#cnt').onclick=e=>{const b=e.target.closest('button');if(!b)return;count=+b.dataset.n;[...$('#cnt').children].forEach(x=>x.setAttribute('aria-pressed',x==b))};
